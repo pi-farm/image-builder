@@ -1,3 +1,4 @@
 image-builder.code-workspace
 projects/*
 !projects/.gitkeep
+.config
