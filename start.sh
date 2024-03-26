@@ -6,6 +6,11 @@ if [ ! -f ".config" ]; then
     echo -e "PROJECTNAME\nREPOSITORY\nVERSION\nSUBVERSION\nARCH\nPUSH\nPROJECTPATH\n" > ".config"
 fi
 
+PACKAGE="dialog"
+if command -v "$PACKAGE" &> /dev/null; then
+else
+    echo "$PACKAGE is not installed, please install it first."
+fi
 
 ende()
 {
