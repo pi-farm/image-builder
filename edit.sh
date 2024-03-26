@@ -27,7 +27,7 @@ if [[ $PUSH = "yes" ]];
 if [[ $PUSH = "no" ]]; 
     then PUSHSTAT=$red_x; fi
 
-clear
+#clear
 echo "------------- CURRENT SETTINGS -------------"
 echo -e "\033[4mProject-Path:\033[0m     \033[3m$PROJECTPATH\033[0m"
 echo -e "\033[4mProject:\033[0m          \033[3m$PROJECTNAME\033[0m"
@@ -55,7 +55,7 @@ read -p "Edit: " menue_wahl
             echo "Current Project-Path: $PROJECTPATH" 
             echo "Change to: "
             
-            folder=(*/)
+            folder=(projects/*)
             #ordner=( "${ordner[@]%/}" )
 
             PS3="Please chose the Project-Directory (or 'q' to quit): "
@@ -110,22 +110,22 @@ read -p "Edit: " menue_wahl
             ;;
             #############################################
         a)
-            clear
-            
+            #clear
+
             options=(
                 1 "386" off
                 2 "amd64" off
                 3 "aarch64" off
             )
 
-            selection=$(dialog --checklist "Chose the Build-Arch:" 10 40 3 "${options[@]}" 2>&1 >/dev/tty)
+            selection=$(dialog --checklist "Arch to build:" 10 40 3 "${options[@]}" 2>&1 >/dev/tty)
 
             if [ $? -ne 0 ]; then
                 echo "Canceled."
                 exit 1
             fi
 
-            echo "Build-Arch:"
+            echo "Build Archs:"
             selected_options=""
             for choice in $selection; do
                 case $choice in
@@ -142,7 +142,7 @@ read -p "Edit: " menue_wahl
             #############################################
         u)
             clear
-            echo "Current status of Push: $PUSH" 
+            echo "Current status of Push: ($PUSH)" 
             echo "Change to: "
             read NEW_PUSH
             sed -i "6s/.*/$NEW_PUSH/" "$CONF"
