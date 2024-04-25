@@ -31,7 +31,7 @@ read -p 'Your choice: ' menue_wahl
 
   case "$menue_wahl" in
     b)
-      bash build.sh
+      bash start.sh
       menue
       ;;
     #############################################
