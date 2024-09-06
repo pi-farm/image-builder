@@ -34,11 +34,11 @@ echo "--------------------------------------------"
 
 
 if [[ $PUSH = "yes" ]]; 
-    then echo docker buildx build --platform="$ARCH" "$RPUSH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/dockerfile .
-    docker buildx build --platform="$ARCH" "$RPUSH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/dockerfile .; fi
+    then echo docker buildx build --no-cache --platform="$ARCH" "$RPUSH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/Dockerfile .
+    docker buildx build --no-cache --platform="$ARCH" "$RPUSH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/Dockerfile .; fi
 if [[ $PUSH = "no" ]]; 
-    then echo docker buildx build --platform="$ARCH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/dockerfile .
-    docker buildx build --platform="$ARCH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/dockerfile .; fi
+    then echo docker buildx build --no-cache --platform="$ARCH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/Dockerfile .
+    docker buildx build --no-cache --platform="$ARCH" -t "$REPO"/"$PROJECTNAME":"$VERSION" -f "$PROJECTPATH"/Dockerfile .; fi
 
 if [ $? -eq 0 ]; then
     echo "Image build successfull";
