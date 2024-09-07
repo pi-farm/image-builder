@@ -23,7 +23,7 @@ menue()
 {
 
 CONF=".config"
-PROJECTPATH=$(sed -n '1p' $CONF)
+PROJECTPATH=$(sed -n '1p' "$CONF")
 
 if [ ! -f "$PROJECTPATH/.config" ]; then
     touch "$PROJECTPATH/.config"
@@ -66,6 +66,7 @@ echo "----------------------------------------------------------"
 echo ""
 echo "b) Build the Image with current settings"
 echo "n) Create new Project"
+echo "g) Create new Projects from Git-URL"
 echo "f) Change Project"
 echo "d) Remove Project"
 echo "e) Edit Project-settings"
@@ -102,6 +103,18 @@ read -p 'Your choice: ' menue_wahl
             clear
             read -p 'Project-Name: ' NEWPROJECT 
             mkdir projects/$NEWPROJECT
+            touch projects/$NEWPROJECT/.config
+            echo -e "$NEWPROJECT\nREPOSITORY\nVERSION\nSUBVERSION\nARCH\nPUSH\nINCREASE" > "projects/$NEWPROJECT/.config"
+            sed -i "1s%.*%projects/$NEWPROJECT%" "$CONF"
+            menue
+            ;;
+            #############################################
+        g) 
+            clear
+            read -p 'Project-Name: ' NEWPROJECT
+            read -p 'Git-URL: ' GITURL
+            mkdir projects/$NEWPROJECT
+            git clone $GITURL projects/$NEWPROJECT
             touch projects/$NEWPROJECT/.config
             echo -e "$NEWPROJECT\nREPOSITORY\nVERSION\nSUBVERSION\nARCH\nPUSH\nINCREASE" > "projects/$NEWPROJECT/.config"
             sed -i "1s%.*%projects/$NEWPROJECT%" "$CONF"
