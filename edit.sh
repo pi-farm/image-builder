@@ -24,6 +24,11 @@ menue()
     ARCH=$(sed -n '5p' "$PROJECT_CONF")
     PUSH=$(sed -n '6p' "$PROJECT_CONF")
     INCREASE=$(sed -n '7p' "$PROJECT_CONF")
+    LATEST=$(sed -n '8p' "$PROJECT_CONF")
+    BUILDCACHE=$(sed -n '9p' "$PROJECT_CONF")
+    DF386=$(sed -n '10p' "$PROJECT_CONF")
+    DFAMD64=$(sed -n '11p' "$PROJECT_CONF")
+    DFARM64=$(sed -n '12p' "$PROJECT_CONF")
 
     green_checkmark="\033[32m\xE2\x9C\x93\033[0m"
     red_x="\033[31m\xE2\x9C\x97\033[0m"
@@ -38,14 +43,31 @@ menue()
     if [[ $INCREASE = "no" ]]; 
         then INCREASESTAT=$red_x; fi
 
+    if [[ $LATEST = "yes" ]];
+        then LATESTSTAT=$green_checkmark; fi
+    if [[ $LATEST = "no" ]]; 
+        then LATESTSTAT=$red_x; fi
+    
+    if [[ $BUILDCACHE = "yes" ]];
+        then BUILDCACHESTAT=$green_checkmark; fi
+    if [[ $BUILDCACHE = "no" ]]; 
+        then BUILDCACHESTAT=$red_x; fi
+
+
     clear
+    echo ""
     echo "------------- CURRENT SETTINGS -------------"
     echo -e "\033[4mProject-Path:\033[0m        \033[3m$PROJECTPATH\033[0m"
     echo -e "\033[4mProject:\033[0m             \033[3m$PROJECTNAME\033[0m"
     echo -e "\033[4mImage-Name:\033[0m          \033[3m$REPO/$PROJECTNAME:$VERSION\033[0m"
     echo -e "\033[4mArch:\033[0m                \033[3m$ARCH\033[0m"
+    echo -e "\033[4mDockerfile 386:\033[0m      \033[3m$DF386\033[0m"
+    echo -e "\033[4mDockerfile amd64:\033[0m    \033[3m$DFAMD64\033[0m"
+    echo -e "\033[4mDockerfile arm64:\033[0m    \033[3m$DFARM64\033[0m"
     echo -e "\033[4mUpload:\033[0m              \033[3m$PUSHSTAT\033[0m"
     echo -e "\033[4mIncrease Subversion:\033[0m \033[3m$INCREASESTAT\033[0m"
+    echo -e "\033[4mTag as 'latest':\033[0m     \033[3m$LATESTSTAT\033[0m"
+    echo -e "\033[4mUse Build-Cache:\033[0m     \033[3m$BUILDCACHESTAT\033[0m"
     echo "--------------------------------------------"
     echo ""
     echo "b) Back to Build-Menue"
@@ -56,13 +78,45 @@ menue()
     echo "m) Main-Version"
     echo "s) Start of Sub-Version"
     echo "a) Arch"
+    echo "d1) Set Dockerfile-name for i386"
+    echo "d2) Set Dockerfile-name for amd64"
+    echo "d3) Set Dockerfile-name for arm64"
     echo "u) Upload to Registry (yes/no)"
     echo "i) Automatic Increase Subversion (yes/no)" 
+    echo "l) Tag as 'latest' (yes/no)"
+    echo "c) Use Build-Cache (yes/no)"
     echo "x) Exit Image-Builder"
     echo ""
-    read -p "Edit: " menue_wahl
+    read -p "Edit: " -n 2 menue_wahl
 
     case "$menue_wahl" in
+        d1)
+            clear
+            echo "Current Dockerfile-name: $DF386" 
+            echo "Change to: "
+            
+            read NEW_DF
+            sed -i "10s/.*/$NEW_DF/" "$PROJECT_CONF"
+            menue
+            ;;
+        d2)
+            clear
+            echo "Current Dockerfile-name: $DFAMD64" 
+            echo "Change to: "
+            
+            read NEW_DF
+            sed -i "11s/.*/$NEW_DF/" "$PROJECT_CONF"
+            menue
+            ;;
+        d3)
+            clear
+            echo "Current Dockerfile-name: $DFARM64" 
+            echo "Change to: "
+            
+            read NEW_DF
+            sed -i "12s/.*/$NEW_DF/" "$PROJECT_CONF"
+            menue
+            ;;
         f)
             clear
             echo "Current Project-Path: $PROJECTPATH" 
@@ -167,6 +221,24 @@ menue()
             echo "Change to: "
             read NEW_INCREASE
             sed -i "7s/.*/$NEW_INCREASE/" "$PROJECT_CONF"
+            menue
+            ;;
+            #############################################
+        l)
+            clear
+            echo "Current status of Tag as 'latest': ($LATEST)" 
+            echo "Change to: "
+            read NEW_LATEST
+            sed -i "8s/.*/$NEW_LATEST/" "$PROJECT_CONF"
+            menue
+            ;;
+            #############################################
+        c)
+            clear
+            echo "Current status of User Build-Cache: ($BUILDCACHE)" 
+            echo "Change to: "
+            read NEW_BUILDCACHE
+            sed -i "9s/.*/$NEW_BUILDCACHE/" "$PROJECT_CONF"
             menue
             ;;
             #############################################

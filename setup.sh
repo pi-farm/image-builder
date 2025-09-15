@@ -27,7 +27,7 @@ echo "s) Setup BuildX-Builder"
 echo "a) Active BuildX-Builder"
 echo "x) Exit Image-Builder"
 echo ""
-read -p 'Your choice: ' menue_wahl
+read -p 'Your choice: ' -n 1 menue_wahl
 
   case "$menue_wahl" in
     b)
@@ -48,7 +48,7 @@ read -p 'Your choice: ' menue_wahl
       ;;
     #############################################
     s)
-      sudo bash setup/setup-builder.sh
+      bash setup/setup-builder.sh
       clear
       menue
       ;;
