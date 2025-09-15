@@ -1,0 +1,77 @@
+#!/bin/bash
+set -e
+cd "$PROJECTPATH"
+
+# Build für jede Architektur
+if [[ $ARCH == *"amd64"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/amd64 \
+    --file "$DFAMD64" \
+    -t "$REPO/$PROJECTNAME:$VERSION-amd64" \
+    --push .
+fi
+
+if [[ $ARCH == *"arm64"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/arm64 \
+    --file "$DFARM64" \
+    -t "$REPO/$PROJECTNAME:$VERSION-arm64" \
+    --push .
+fi
+
+if [[ $ARCH == *"386"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/386 \
+    --file "$DF386" \
+    -t "$REPO/$PROJECTNAME:$VERSION-386" \
+    --push .
+fi
+
+# Manifest erstellen
+if [[ $PUSH == "yes" ]]; then
+  docker manifest create "$REPO/$PROJECTNAME:$VERSION" \
+    $( [[ $ARCH == *"amd64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-amd64" ) \
+    $( [[ $ARCH == *"arm64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-arm64" ) \
+    $( [[ $ARCH == *"386"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-386" )
+
+  docker manifest push "$REPO/$PROJECTNAME:$VERSION"
+
+  if [[ $LATEST == "yes" ]]; then
+    docker manifest create "$REPO/$PROJECTNAME:latest" \
+      $( [[ $ARCH == *"amd64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-amd64" ) \
+      $( [[ $ARCH == *"arm64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-arm64" ) \
+      $( [[ $ARCH == *"386"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-386" )
+
+    docker manifest push "$REPO/$PROJECTNAME:latest"
+  fi
+fi
+
+
+#: << 'END'
+  # Architektur-Tags löschen, um die Registry aufzuräumen
+  if [[ $CLEANUP == "yes" ]]; then
+    if [[ $ARCH == *"amd64"* ]]; then
+      docker rmi "$REPO/$PROJECTNAME:$VERSION-amd64"
+      if [[ $LATEST == "yes" ]]; then
+        docker rmi "$REPO/$PROJECTNAME:latest-amd64"
+      fi
+    fi
+    if [[ $ARCH == *"arm64"* ]]; then
+      docker rmi "$REPO/$PROJECTNAME:$VERSION-arm64"
+      if [[ $LATEST == "yes" ]]; then
+        docker rmi "$REPO/$PROJECTNAME:latest-arm64"
+      fi
+    fi
+    if [[ $ARCH == *"386"* ]]; then
+      docker rmi "$REPO/$PROJECTNAME:$VERSION-386"
+      if [[ $LATEST == "yes" ]]; then
+        docker rmi "$REPO/$PROJECTNAME:latest-386"
+      fi
+    fi
+  fi
+#END
+cd ../..
+

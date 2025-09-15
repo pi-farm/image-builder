@@ -1,0 +1,124 @@
+#!/bin/bash
+
+# Variablen, die über das aufrufende Script übergeben werden
+# ARCH: Architekturen, die gebaut werden sollen (z.B. "linux/amd64,linux/arm64")
+# DF386: Dockerfile für die Architektur linux/386
+# DFAMD64: Dockerfile für die Architektur linux/amd64
+# DFARM64: Dockerfile für die Architektur linux/arm64
+# BUILDCACHE: Ob der Build-Cache verwendet werden soll (yes/no)
+# PUSH: Ob die Images auf die Registry gepusht werden sollen (yes/no)
+# VERSION: Versionsnummer für die Images
+# REPO: Die URL der Registry
+# PROJECT_CONF: Pfad zur Konfigurationsdatei mit der Versionsnummer
+# INCREASE: Ob die Versionsnummer automatisch erhöht werden soll (yes/no)
+
+# Funktion zur automatischen Erhöhung der Versionsnummer
+increment_version() {
+    if [[ $INCREASE == "yes" ]]; then
+        echo "Erhöhe die Versionsnummer in $PROJECT_CONF"
+        current_version=$(sed -n '4p' "$PROJECT_CONF")
+        new_version=$((current_version + 1))
+        sed -i "4s/.*/$new_version/" "$PROJECT_CONF"
+        echo "Neue Versionsnummer: $new_version"
+    fi
+}
+
+cd "$PROJECTPATH"
+
+# 1. Lokales Build der Images mit --load
+echo "Bauen der Images für Architekturen: $ARCH"
+EXIT_CODE=0
+
+for arch in $(echo $ARCH | tr "," "\n"); do
+    case $arch in
+        "linux/386")
+            echo "Bauen für $arch mit Dockerfile: $DF386"
+            if [ "$BUILDCACHE" == "yes" ]; then
+                docker buildx build --platform $arch -f $DF386 --cache-from=type=registry,ref=$REPO/$PROJECTNAME:$VERSION-386 --load --tag $REPO/$PROJECTNAME:$VERSION-386 .
+            else
+                docker buildx build --platform $arch -f $DF386 --load --tag $REPO/$PROJECTNAME:$VERSION-386 .
+            fi
+            docker tag $REPO/$PROJECTNAME:$VERSION-386 $REPO/$PROJECTNAME:latest-386
+            ;;
+        "linux/amd64")
+            echo "Bauen für $arch mit Dockerfile: $DFAMD64"
+            if [ "$BUILDCACHE" == "yes" ]; then
+                docker buildx build --platform $arch -f $DFAMD64 --cache-from=type=registry,ref=$REPO/$PROJECTNAME:$VERSION-amd64 --load --tag $REPO/$PROJECTNAME:$VERSION-amd64 .
+            else
+                docker buildx build --platform $arch -f $DFAMD64 --load --tag $REPO/$PROJECTNAME:$VERSION-amd64 .
+            fi
+            docker tag $REPO/$PROJECTNAME:$VERSION-amd64 $REPO/$PROJECTNAME:latest-amd64
+            ;;
+        "linux/arm64")
+            echo "Bauen für $arch mit Dockerfile: $DFARM64"
+            if [ "$BUILDCACHE" == "yes" ]; then
+                docker buildx build --platform $arch -f $DFARM64 --cache-from=type=registry,ref=$REPO/$PROJECTNAME:$VERSION-arm64 --load --tag $REPO/$PROJECTNAME:$VERSION-arm64 .
+            else
+                docker buildx build --platform $arch -f $DFARM64 --load --tag $REPO/$PROJECTNAME:$VERSION-arm64 .
+            fi
+            docker tag $REPO/$PROJECTNAME:$VERSION-arm64 $REPO/$PROJECTNAME:latest-arm64
+            ;;
+        *)
+            echo "Unbekannte Architektur: $arch"
+            EXIT_CODE=1
+            ;;
+    esac
+done
+
+# 2. Pushen der Images (sowohl Versionstag als auch latest-$ARCH) auf die Registry
+if [ "$EXIT_CODE" -eq 0 ] && [ "$PUSH" == "yes" ]; then
+    echo "Pushe die Images auf die Registry"
+    for arch in $(echo $ARCH | tr "," "\n"); do
+        case $arch in
+            "linux/386")
+                docker push $REPO/$PROJECTNAME:$VERSION-386
+                docker push $REPO/$PROJECTNAME:latest-386
+                ;;
+            "linux/amd64")
+                docker push $REPO/$PROJECTNAME:$VERSION-amd64
+                docker push $REPO/$PROJECTNAME:latest-amd64
+                ;;
+            "linux/arm64")
+                docker push $REPO/$PROJECTNAME:$VERSION-arm64
+                docker push $REPO/$PROJECTNAME:latest-arm64
+                ;;
+        esac
+    done
+fi
+
+# 3. Erstellen und Pushen des Multi-Arch-Manifests für die Version
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "Erstelle Multi-Arch-Manifest für Version $VERSION"
+    docker manifest create $REPO/$PROJECTNAME:$VERSION \
+      --amend $REPO/$PROJECTNAME:$VERSION-386 \
+      --amend $REPO/$PROJECTNAME:$VERSION-amd64 \
+      --amend $REPO/$PROJECTNAME:$VERSION-arm64
+
+    if [ "$PUSH" == "yes" ]; then
+        docker manifest push $REPO/$PROJECTNAME:$VERSION
+    fi
+
+    # 4. Erstellen und Pushen des Multi-Arch-Manifests für den 'latest'-Tag
+    echo "Erstelle Multi-Arch-Manifest für 'latest'"
+    docker manifest create $REPO/$PROJECTNAME:latest \
+      --amend $REPO/$PROJECTNAME:latest-386 \
+      --amend $REPO/$PROJECTNAME:latest-amd64 \
+      --amend $REPO/$PROJECTNAME:latest-arm64
+
+    if [ "$PUSH" == "yes" ]; then
+        docker manifest push $REPO/$PROJECTNAME:latest
+    fi
+fi
+
+cd ../../
+
+# 5. Erhöhen der Versionsnummer (falls gewünscht)
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "Image-Build erfolgreich!"
+    increment_version
+else
+    echo "Fehler beim Build-Prozess: $EXIT_CODE"
+    exit $EXIT_CODE
+fi
+
+echo "Fertig!"

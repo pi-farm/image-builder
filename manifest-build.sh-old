@@ -1,0 +1,71 @@
+#!/bin/bash
+set -e
+cd $PROJECTPATH
+
+# AMD64 Build
+if [[ $ARCH == *"amd64"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/amd64 \
+    --file "$DFAMD64" \
+    -t "$REPO/$PROJECTNAME:$VERSION-amd64" \
+    $( [[ $LATEST == "yes" ]] && echo "-t $REPO/$PROJECTNAME:latest-amd64" ) \
+    --push .
+fi
+
+# ARM64 Build
+if [[ $ARCH == *"arm64"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/arm64 \
+    --file "$DFARM64" \
+    -t "$REPO/$PROJECTNAME:$VERSION-arm64" \
+    $( [[ $LATEST == "yes" ]] && echo "-t $REPO/$PROJECTNAME:latest-arm64" ) \
+    --push .
+fi
+
+# 386 Build
+if [[ $ARCH == *"386"* ]]; then
+  docker buildx build \
+    $( [[ $BUILDCACHE == "no" ]] && echo "--no-cache" ) \
+    --platform linux/386 \
+    --file "$DF386" \
+    -t "$REPO/$PROJECTNAME:$VERSION-386" \
+    $( [[ $LATEST == "yes" ]] && echo "-t $REPO/$PROJECTNAME:latest-386" ) \
+    --push .
+fi
+
+# Manifest erstellen und pushen
+if [[ $PUSH == "yes" ]]; then
+  # Manifest für Version
+  docker manifest create "$REPO/$PROJECTNAME:$VERSION" \
+    $( [[ $ARCH == *"amd64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-amd64" ) \
+    $( [[ $ARCH == *"arm64"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-arm64" ) \
+    $( [[ $ARCH == *"386"* ]] && echo "--amend $REPO/$PROJECTNAME:$VERSION-386" )
+
+  docker manifest push "$REPO/$PROJECTNAME:$VERSION"
+
+  # Manifest für "latest"
+  if [[ $LATEST == "yes" ]]; then
+    docker manifest create "$REPO/$PROJECTNAME:latest" \
+      $( [[ $ARCH == *"amd64"* ]] && echo "--amend $REPO/$PROJECTNAME:latest-amd64" ) \
+      $( [[ $ARCH == *"arm64"* ]] && echo "--amend $REPO/$PROJECTNAME:latest-arm64" ) \
+      $( [[ $ARCH == *"386"* ]] && echo "--amend $REPO/$PROJECTNAME:latest-386" )
+
+    docker manifest push "$REPO/$PROJECTNAME:latest"
+  fi
+fi
+
+echo "Build und Deployment abgeschlossen."
+
+cd ../..
+
+###if [ $EXIT_CODE -eq 0 ]; then
+    echo "Image build successfull"
+    if [[ $INCREASE = "yes" ]]; then
+        sv=$(sed -n '4p' "$PROJECT_CONF")
+        svn=$((sv + 1))
+        sed -i "4s/.*/$svn/" "$PROJECT_CONF"
+    fi
+##else
+##    echo "ERROR in build-process: $EXIT_CODE"
